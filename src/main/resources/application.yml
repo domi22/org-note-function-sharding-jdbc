@@ -1,0 +1,80 @@
+server:
+  port: 8887
+  servlet:
+    context-path: /org-note-function
+spring:
+  application:
+    name: org-note-function
+  profiles:
+    active: dev
+  shardingsphere:
+    datasource:
+      names: m1,m2,m5
+      m1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        url: jdbc:mysql://192.168.15.128:3306/domi?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useJDBCCompliantTimezoneShift=true&useSSL=false
+        driver-class-name: com.mysql.jdbc.Driver
+        username: root
+        password: root@57
+      m2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        url: jdbc:mysql://192.168.15.128:3306/domi2?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useJDBCCompliantTimezoneShift=true&useSSL=false
+        driver-class-name: com.mysql.jdbc.Driver
+        username: root
+        password: root@57
+      m5:
+        type: com.alibaba.druid.pool.DruidDataSource
+        url: jdbc:mysql://192.168.15.128:3306/domi5?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useJDBCCompliantTimezoneShift=true&useSSL=false
+        driver-class-name: com.mysql.jdbc.Driver
+        username: root
+        password: root@57
+    sharding:
+      tables:
+        t_order:
+          actual-data-nodes: m5.t_order   #只有一个结点，暂时不分库
+          key-generator:                          #主键生成策略
+            column: id
+            type: SNOWFLAKE
+          table-strategy:                         #表的分片算法
+            inline:
+              sharding-column: id
+              algorithm-expression: t_order     #只有一个结点，也需要配置分片策略
+        t_user:
+          database-strategy:                       #定义分库规则
+            inline:
+              sharding-column: age
+              algorithm-expression: m$->{age % 2 + 1}
+          actual-data-nodes: m$->{1..2}.t_user_$->{1..2}  #定义表的结点数
+          key-generator:                          #主键生成策略
+            column: id
+            type: SNOWFLAKE
+          table-strategy:                         #表的分片算法
+            inline:
+              sharding-column: id
+              algorithm-expression: t_user_$->{id % 2 + 1}
+      broadcast-tables: t_dict
+    props:  # 显示SQL
+      sql:
+        show: true
+#-----------------------------------DAO层-mybatis-2/2[开始]-----------------------------------------------
+mybatis:
+  config-location: classpath:mybatis-config.xml
+  mapper-locations: classpath:mapper/*.xml
+#  configuration:
+#    map-underscore-to-camel-case: true
+
+
+# 日志配置
+logging:
+  level:
+    root: info
+    org:
+      springframework:
+        web:
+          info
+    com:
+      itheima:
+        dbsharding: debug
+      druid:
+        sql: debug
+
